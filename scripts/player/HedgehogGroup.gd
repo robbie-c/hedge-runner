@@ -37,6 +37,9 @@ func _ready():
 	collision_layer = Constants.LAYER_PLAYER
 	collision_mask = Constants.LAYER_OBSTACLES | Constants.LAYER_COLLECTIBLES
 
+	# Add debug formation area visualization
+	create_formation_debug_visual()
+
 func _input(event):
 	if event is InputEventMouseMotion:
 		mouse_position = event.position
@@ -60,6 +63,16 @@ func _physics_process(delta):
 
 	# Apply movement
 	velocity = move_and_slide(velocity, Vector3.UP)
+
+	# Debug: Print position and lane info every 60 frames
+	if Engine.get_frames_drawn() % 60 == 0:
+		var track_left = -Constants.TRACK_WIDTH / 2.0  # -6
+		var track_right = Constants.TRACK_WIDTH / 2.0  # +6
+		var distance_from_left = translation.x - track_left
+		var distance_from_right = track_right - translation.x
+		print("HedgehogGroup: x=", translation.x, " lane=", current_lane, " target_x=", target_x_position,
+			  " | Track: left=", track_left, " right=", track_right,
+			  " | Distance from edges: left=", distance_from_left, " right=", distance_from_right)
 
 	# Update score distance
 	ScoreManager.add_distance(move_speed * delta)
@@ -123,7 +136,8 @@ func create_hedgehogs_for_magnitude(magnitude: int, count: int):
 		var row = int(i / Constants.HEDGEHOG_MAX_PER_ROW)
 		var col = i % Constants.HEDGEHOG_MAX_PER_ROW
 
-		var x_offset = (col - Constants.HEDGEHOG_MAX_PER_ROW / 2.0) * Constants.HEDGEHOG_SPACING
+		# Center the formation: use (max-1)/2 to get symmetric offsets
+		var x_offset = (col - (Constants.HEDGEHOG_MAX_PER_ROW - 1) / 2.0) * Constants.HEDGEHOG_SPACING
 		var z_offset = row * Constants.HEDGEHOG_SPACING
 		var y_offset = magnitude * 0.2  # Stack different magnitudes slightly higher
 
@@ -144,6 +158,34 @@ func _on_body_entered(body):
 		body.hit_by_player()
 	elif body.is_in_group("collectible"):
 		body.collect()
+
+func create_formation_debug_visual():
+	# Create a semi-transparent colored plane to show formation bounds
+	var debug_mesh = MeshInstance.new()
+	visual_container.add_child(debug_mesh)
+
+	# Create a plane mesh sized to actual formation area
+	# Formation spans from leftmost to rightmost hedgehog
+	# With N hedgehogs, there are (N-1) gaps between them
+	var formation_width = (Constants.HEDGEHOG_MAX_PER_ROW - 1) * Constants.HEDGEHOG_SPACING
+	var formation_depth = 2.0  # Arbitrary depth for visibility
+	var plane = PlaneMesh.new()
+	plane.size = Vector2(formation_width, formation_depth)
+	debug_mesh.mesh = plane
+
+	# Position above ground level so it's visible
+	debug_mesh.translation = Vector3(0, 0.5, formation_depth / 2.0)
+
+	# Create semi-transparent bright cyan material
+	var material = SpatialMaterial.new()
+	material.albedo_color = Color(0, 1, 1, 0.6)  # Cyan with 60% opacity
+	material.emission_enabled = true
+	material.emission = Color(0, 1, 1)  # Cyan emission for visibility
+	material.emission_energy = 0.5
+	material.flags_transparent = true
+	material.flags_unshaded = true
+	material.params_cull_mode = SpatialMaterial.CULL_DISABLED  # Visible from both sides
+	debug_mesh.material_override = material
 
 func reset_position():
 	translation = Constants.PLAYER_START_POSITION

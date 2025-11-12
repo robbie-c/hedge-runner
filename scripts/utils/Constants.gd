@@ -15,7 +15,7 @@ const PLAYER_START_POSITION: Vector3 = Vector3(0, 0, 0)
 
 # Hedgehog display settings
 const HEDGEHOG_SPACING: float = 0.5
-const HEDGEHOG_MAX_PER_ROW: int = 10
+const HEDGEHOG_MAX_PER_ROW: int = 4  # Formation width = 4 * 0.5 = 2 units (half of gate)
 const HEDGEHOG_SCALE: float = 1.0
 
 # Hedgehog color coding (by magnitude)
@@ -49,14 +49,16 @@ const CAMERA_SMOOTHNESS: float = 0.1
 # UI settings
 const HUD_UPDATE_INTERVAL: float = 0.1
 
-# Physics layers
-const LAYER_PLAYER: int = 1
-const LAYER_OBSTACLES: int = 2
-const LAYER_COLLECTIBLES: int = 3
-const LAYER_TRACK: int = 4
+# Physics layers (must be powers of 2 for bit flags)
+const LAYER_PLAYER: int = 1      # Layer 1 (bit 0)
+const LAYER_OBSTACLES: int = 2   # Layer 2 (bit 1)
+const LAYER_COLLECTIBLES: int = 4  # Layer 3 (bit 2)
+const LAYER_TRACK: int = 8       # Layer 4 (bit 3)
 
 func get_lane_position(lane_index: int) -> float:
 	# Returns the X position for a given lane (0, 1, or 2)
+	# Each lane is LANE_WIDTH (4 units) wide, centered in its zone
+	# Lane 0: x=-4, Lane 1: x=0, Lane 2: x=+4
 	var offset = -TRACK_WIDTH / 2.0 + LANE_WIDTH / 2.0
 	return offset + (lane_index * LANE_WIDTH)
 

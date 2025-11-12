@@ -21,6 +21,9 @@ func set_player(player_node: KinematicBody):
 	player = player_node
 	last_spawn_z = player.translation.z
 
+	# Spawn test gates for debugging
+	call_deferred("spawn_test_gates")
+
 func _process(delta):
 	if not player or GameManager.current_state != GameManager.GameState.RUNNING:
 		return
@@ -60,6 +63,8 @@ func spawn_obstacle_in_lane(lane: int):
 	var z_pos = player.translation.z - 50.0  # Spawn ahead of player
 	obstacle.translation = Vector3(x_pos, 1.0, z_pos)
 
+	print("ObstacleSpawner: Spawning obstacle at position: ", obstacle.translation, " Player at: ", player.translation)
+
 	# Generate random math operation
 	var math_op = Constants.get_random_operation()
 	obstacle.set_operation(math_op.operation, math_op.value)
@@ -67,6 +72,8 @@ func spawn_obstacle_in_lane(lane: int):
 	# Add to scene
 	add_child(obstacle)
 	active_obstacles.append(obstacle)
+
+	print("ObstacleSpawner: Obstacle monitoring=", obstacle.monitoring, " monitorable=", obstacle.monitorable, " layer=", obstacle.collision_layer, " mask=", obstacle.collision_mask)
 
 func create_obstacle() -> Area:
 	if obstacle_scene:
@@ -134,6 +141,28 @@ func calculate_next_spawn_distance():
 	var difficulty_factor = GameManager.difficulty_multiplier
 	next_spawn_distance = base_distance / difficulty_factor
 	next_spawn_distance = max(next_spawn_distance, 10.0)  # Minimum distance
+
+func spawn_test_gates():
+	# Spawn 3 gates side by side for testing (one in each lane)
+	var test_z = player.translation.z - 20.0  # Close to start
+
+	for lane in range(3):
+		var obstacle = create_obstacle()
+		if not obstacle:
+			continue
+
+		var x_pos = Constants.get_lane_position(lane)
+		obstacle.translation = Vector3(x_pos, 1.0, test_z)
+
+		# Set simple test operations
+		var operations = ["+5", "-3", "*2"]
+		var op = operations[lane][0]
+		var val = int(operations[lane].substr(1))
+		obstacle.set_operation(op, val)
+
+		add_child(obstacle)
+		active_obstacles.append(obstacle)
+		print("Test gate spawned in lane ", lane, " at x=", x_pos)
 
 func reset():
 	# Clear all obstacles
